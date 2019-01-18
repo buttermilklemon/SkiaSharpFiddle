@@ -19,7 +19,6 @@ namespace SkiaSharpFiddle
             "netstandard",
             "mscorlib",
             "System",
-            "System.Core",
             "SkiaSharp",
         };
 
@@ -41,12 +40,9 @@ namespace SkiaSharpFiddle
             var result = await Task.Run(() =>
             {
                 // load references
-                lock (referencesLocker)
-                {
-                    assemblyReferences = GetReferences().ToArray();
-                    metadataReferences = assemblyReferences.Select(a => MetadataReference.CreateFromFile(a.Location)).ToArray();
-                }
+                LoadAssemblyReferences();
 
+                // check for cancellation - that last step may have taken some time
                 cancellationToken.ThrowIfCancellationRequested();
 
                 // compile the code
@@ -56,10 +52,23 @@ namespace SkiaSharpFiddle
             return result;
         }
 
-        private IEnumerable<Assembly> GetReferences() =>
-            AppDomain.CurrentDomain
-                .GetAssemblies()
-                .Where(a => WhitelistedAssemblies.Any(wl => wl.Equals(a.GetName().Name, StringComparison.OrdinalIgnoreCase)));
+        private void LoadAssemblyReferences()
+        {
+            if (metadataReferences == null)
+            {
+                lock (referencesLocker)
+                {
+                    if (metadataReferences == null)
+                    {
+                        assemblyReferences = AppDomain.CurrentDomain
+                            .GetAssemblies()
+                            .Where(a => WhitelistedAssemblies.Any(wl => a.GetName().Name.StartsWith(wl, StringComparison.OrdinalIgnoreCase)))
+                            .ToArray();
+                        metadataReferences = assemblyReferences.Select(a => MetadataReference.CreateFromFile(a.Location)).ToArray();
+                    }
+                }
+            }
+        }
 
         private CompilationResult CompileSourceCode(SourceText sourceCode, CancellationToken cancellationToken = default)
         {

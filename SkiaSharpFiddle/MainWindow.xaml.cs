@@ -75,7 +75,7 @@ namespace SkiaSharpFiddle
             var type = typeof(MainWindow);
             var assembly = type.Assembly;
 
-            var resource = $"{type.Namespace}.Resources.InitialSource.cs";
+            var resource = $"{type.Namespace}.Resources.InitialSource.cs.txt";
 
             using (var stream = assembly.GetManifestResourceStream(resource))
             using (var reader = new StreamReader(stream))
